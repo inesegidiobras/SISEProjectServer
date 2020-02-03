@@ -1,0 +1,74 @@
+package com.insure.server;
+
+import javax.jws.WebService;
+import java.sql.Timestamp;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+@WebService
+public class ClaimDataStore {
+
+    private Claim claim;
+    private String description;
+    private boolean isEligible;
+    private boolean isAccepted;
+    private int id_user;
+    private AtomicInteger id_claim;
+
+    ConcurrentHashMap<Integer, Claim> DataStore;
+
+    public ClaimDataStore() {
+        DataStore=new ConcurrentHashMap<Integer, Claim>();
+        AtomicInteger id_claim=new AtomicInteger(0);
+    }
+
+    public synchronized void createClaim(Integer id_user,String description) {
+        id_claim.incrementAndGet();
+        int id=id_claim.intValue();
+        Claim claim1 = new Claim(id_user, description, id, false, false);
+        DataStore.put(id,claim1);
+    }
+
+    public Claim getClaimByID(int id_claim) {
+        return this.DataStore.get(id_claim);
+
+    }
+    public void addDocClaim(AtomicInteger id_document, Timestamp timestamp, String description, int id_claim){
+        DataStore.get(id_claim).createDocument(id_document, timestamp, description, id_claim);
+    }
+
+    public synchronized void changeEligibility(int id_claim) {
+        if (this.DataStore.containsKey(id_claim)) {
+            Claim claim = getClaimByID(id_claim);
+            claim.changeEligibility();
+        } else {
+            System.out.println("This claim does not exist");
+        }
+    }
+
+    public boolean isEligible(int id) {
+        Claim claim = getClaimByID(id);
+        return claim.isEligible();
+    }
+
+    public synchronized boolean changeAcceptance(int id_claim) {
+        Claim claim = getClaimByID(id_claim);
+        if (claim.isEligible) {
+            claim.changeAcceptance();
+        } else {
+            System.out.println("This claim is not Eligible!");
+        }
+        return claim.isAccepted;
+    }
+
+    public int size(){
+        return DataStore.size();
+    }
+
+    public static void main(String[] args) throws ClaimNotFoundException {
+        ClaimDataStore DB=new ClaimDataStore();
+        DB.createClaim(1,"oi");
+        System.out.println(DB.size());
+
+    }
+}
