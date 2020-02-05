@@ -1,7 +1,9 @@
 package com.insure.server;
 
 import javax.jws.WebService;
+import java.security.*;
 import java.sql.Timestamp;
+import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,27 +16,36 @@ public class ClaimDataStore {
     private boolean isAccepted;
     private int id_user;
     private AtomicInteger id_claim;
-
+    private String encryptedHash;
+    private String content;
     ConcurrentHashMap<Integer, Claim> DataStore;
+    private Object DigitalSignature;
 
     public ClaimDataStore() {
-        DataStore=new ConcurrentHashMap<Integer, Claim>();
-        AtomicInteger id_claim=new AtomicInteger(0);
+        DataStore = new ConcurrentHashMap<Integer, Claim>();
+        AtomicInteger id_claim = new AtomicInteger(0);
     }
 
-    public synchronized void createClaim(Integer id_user,String description) {
+    public synchronized void createClaim(Integer id_user, String description) {
         id_claim.incrementAndGet();
-        int id=id_claim.intValue();
+        int id = id_claim.intValue();
         Claim claim1 = new Claim(id_user, description, id, false, false);
-        DataStore.put(id,claim1);
+        DataStore.put(id, claim1);
     }
 
     public Claim getClaimByID(int id_claim) {
         return this.DataStore.get(id_claim);
-
     }
-    public void addDocClaim(AtomicInteger id_document, Timestamp timestamp, String description, int id_claim){
-        DataStore.get(id_claim).createDocument(id_document, timestamp, description, id_claim);
+
+    public void addDocClaim(AtomicInteger id_document, Timestamp timestamp, String content, int id_claim, int id_user, int filename) throws Exception {
+        DigitalSignature signature= new DigitalSignature();
+        boolean validation = signature.verifyDigitalSignature(content, encryptedHash, "Keys\\" + "Client" + id_user + "PublicKey");
+        if (validation){
+            DataStore.get(id_claim).createDocument(content , id_claim, encryptedHash);
+        }
+        else {
+            throw new Exception();
+        }
     }
 
     public synchronized void changeEligibility(int id_claim) {

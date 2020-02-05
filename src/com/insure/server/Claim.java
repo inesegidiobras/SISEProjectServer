@@ -12,7 +12,10 @@ public class Claim {
     private int id_claim;
     boolean isEligible;
     boolean isAccepted;
+    private String content;
+    private String encryptedHash;
     ConcurrentHashMap<Integer, Document> ClaimDocument;
+    AtomicInteger id_document=new AtomicInteger(0);
 
     Claim(int id_user, String description, int id_claim, boolean isEligible, boolean isAccepted) {
         this.id_user = id_user;
@@ -21,13 +24,13 @@ public class Claim {
         this.isEligible = isEligible;
         this.isAccepted = isAccepted;
         ClaimDocument = new ConcurrentHashMap<Integer, Document>();
-        AtomicInteger id_document=new AtomicInteger(0);
     }
-    public synchronized void createDocument(AtomicInteger id_document, Timestamp timestamp, String description, int id_claim) {
+
+    public synchronized void createDocument(String content, int id_claim, String encryptedHash) {
         id_document.incrementAndGet();
         int id=id_document.intValue();
         Timestamp timeStamp = new Timestamp(System.currentTimeMillis());
-        Document document1= new Document(id, timeStamp);
+        Document document1= new Document(id, timeStamp, id_user, content);
         ClaimDocument.put(id,document1);
     }
 
@@ -77,6 +80,22 @@ public class Claim {
 
     public void changeAcceptance() {
         this.isAccepted = !isAccepted();
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public String getEncryptedHash() {
+        return encryptedHash;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public void setEncryptedHash(String encryptedHash) {
+        this.encryptedHash = encryptedHash;
     }
 
     public String getClaimStatus() {
